@@ -1,0 +1,2413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>farha@kousar:~# portfolio</title>
+  <style>
+    /* ===== RESET & BASE ===== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --green: #00ff41;
+      --green-dim: #00cc33;
+      --green-dark: #003b00;
+      --bg: #0a0a0a;
+      --cyan: #00f0ff;
+      --red: #ff003c;
+      --yellow: #ffe600;
+      --purple: #b026ff;
+      --pink: #ff2d95;
+      --font-mono: 'Courier New', 'Fira Code', 'Consolas', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--green);
+      font-family: var(--font-mono);
+      overflow-x: hidden;
+      min-height: 100vh;
+      perspective: 1200px;
+    }
+
+    /* ===== MATRIX RAIN ===== */
+    #matrix {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0; opacity: 0.32;
+      pointer-events: none;
+    }
+
+    /* ===== SCANLINES ===== */
+    .scanlines {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 2; pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px,
+        transparent 1px, transparent 3px
+      );
+    }
+    .scanlines::after {
+      content: ''; position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 255, 65, 0.03);
+      animation: flicker 0.15s infinite;
+    }
+    @keyframes flicker {
+      0% { opacity: 0.02; } 50% { opacity: 0.07; } 100% { opacity: 0.02; }
+    }
+
+    /* ===== CURSOR TRAIL ===== */
+    .cursor-trail {
+      position: fixed; width: 6px; height: 6px;
+      border-radius: 50%; background: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan);
+      pointer-events: none; z-index: 9999;
+      transition: transform 0.08s ease-out;
+      mix-blend-mode: screen;
+    }
+
+    /* ===== CONTAINER ===== */
+    .container {
+      position: relative; z-index: 1;
+      max-width: 1250px; margin: 0 auto;
+      padding: 1.5rem 1.2rem; min-height: 100vh;
+    }
+
+    /* ===== LAYOUT ===== */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.2rem; align-items: start;
+    }
+    @media (max-width: 960px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* ===== TERMINAL ===== */
+    .terminal {
+      border: 1px solid var(--green-dim);
+      box-shadow: 0 0 25px rgba(0,255,65,0.15), inset 0 0 25px rgba(0,255,65,0.03);
+      background: rgba(5,10,5,0.94);
+      border-radius: 4px; overflow: hidden;
+      backdrop-filter: blur(2px);
+    }
+    .terminal-bar {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px;
+      background: rgba(0,255,65,0.06);
+      border-bottom: 1px solid rgba(0,255,65,0.2);
+    }
+    .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot.r { background: #ff5f56; }
+    .dot.y { background: #ffbd2e; }
+    .dot.g { background: #27c93f; }
+    .terminal-bar-title {
+      margin-left: 10px; font-size: 0.75rem;
+      color: rgba(0,255,65,0.5); letter-spacing: 0.05em;
+    }
+    .terminal-body { padding: 1.8rem 1.6rem; }
+
+    /* ===== PROMPT ===== */
+    .prompt-line {
+      margin-bottom: 0.6rem; font-size: 0.88rem;
+      line-height: 1.6; opacity: 0;
+      animation: fadeUp 0.5s forwards;
+    }
+    .prompt { color: var(--cyan); }
+    .prompt .user { color: var(--green); }
+    .prompt .path { color: var(--yellow); }
+    .prompt .symbol { color: var(--red); }
+    .output { color: var(--green-dim); white-space: pre-wrap; }
+    .output .hl { color: var(--cyan); }
+    .output .warn { color: var(--yellow); }
+    .output .err { color: var(--red); }
+    .output .dim { color: rgba(0,255,65,0.4); }
+    .output .purple { color: var(--purple); }
+    .output .pink { color: var(--pink); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .d1 { animation-delay: 0.2s; } .d2 { animation-delay: 0.5s; }
+    .d3 { animation-delay: 0.8s; } .d4 { animation-delay: 1.1s; }
+    .d5 { animation-delay: 1.4s; } .d6 { animation-delay: 1.7s; }
+    .d7 { animation-delay: 2.0s; } .d8 { animation-delay: 2.3s; }
+    .d9 { animation-delay: 2.6s; } .d10 { animation-delay: 2.9s; }
+    .d11 { animation-delay: 3.2s; } .d12 { animation-delay: 3.5s; }
+    .d13 { animation-delay: 3.8s; } .d14 { animation-delay: 4.1s; }
+    .d15 { animation-delay: 4.4s; } .d16 { animation-delay: 4.7s; }
+    .d17 { animation-delay: 5.0s; } .d18 { animation-delay: 5.3s; }
+
+    /* ===== CURSOR ===== */
+    .cursor {
+      display: inline-block; width: 9px; height: 1.1em;
+      background: var(--green); vertical-align: text-bottom;
+      margin-left: 2px; animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+    /* ===== ASCII ===== */
+    .ascii-name {
+      color: var(--green); font-size: 0.44rem;
+      line-height: 1.15; white-space: pre;
+      text-shadow: 0 0 10px rgba(0,255,65,0.5);
+      margin: 1rem 0 0.5rem; overflow-x: auto;
+    }
+    @media (max-width: 700px) { .ascii-name { font-size: 0.26rem; } }
+
+    /* ===== GLITCH ===== */
+    .glitch {
+      font-size: clamp(1.2rem, 3.5vw, 1.9rem);
+      font-weight: bold; color: var(--green);
+      text-transform: uppercase; letter-spacing: 0.1em;
+      position: relative; display: inline-block;
+      margin: 0.3rem 0 0.2rem;
+      text-shadow: 0 0 12px rgba(0,255,65,0.7);
+    }
+    .glitch::before, .glitch::after {
+      content: attr(data-text); position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      overflow: hidden;
+    }
+    .glitch::before {
+      color: var(--cyan); z-index: -1;
+      animation: glitchShift 2.5s infinite linear alternate-reverse;
+    }
+    .glitch::after {
+      color: var(--red); z-index: -2;
+      animation: glitchShift2 3.1s infinite linear alternate-reverse;
+    }
+    @keyframes glitchShift {
+      0% { transform: translate(0); }
+      20% { transform: translate(-3px,2px); }
+      40% { transform: translate(-2px,-1px); }
+      60% { transform: translate(2px,1px); }
+      80% { transform: translate(1px,-2px); }
+      100% { transform: translate(0); }
+    }
+    @keyframes glitchShift2 {
+      0% { transform: translate(0); }
+      25% { transform: translate(3px,-2px); }
+      50% { transform: translate(1px,2px); }
+      75% { transform: translate(-2px,-1px); }
+      100% { transform: translate(0); }
+    }
+
+    /* ===== SECTION HEADERS ===== */
+    .section-header {
+      margin: 1.8rem 0 0.6rem; padding: 0.4rem 0.8rem;
+      border-left: 3px solid var(--green);
+      background: rgba(0,255,65,0.05);
+      font-size: 0.85rem; letter-spacing: 0.08em;
+      text-transform: uppercase;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .section-header .tag {
+      color: var(--bg); background: var(--green);
+      font-size: 0.6rem; padding: 2px 7px;
+      border-radius: 2px; font-weight: bold;
+    }
+
+    /* ===== PROJECTS ===== */
+    .project-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 0.8rem; margin-top: 0.5rem;
+    }
+    .project-card {
+      border: 1px solid rgba(0,255,65,0.25);
+      background: rgba(0,255,65,0.03);
+      padding: 0.8rem 0.9rem; border-radius: 3px;
+      transition: all 0.15s ease;
+      position: relative; overflow: hidden;
+      transform-style: preserve-3d; will-change: transform;
+    }
+    .project-card::before {
+      content: ''; position: absolute;
+      top: 0; left: -100%; width: 100%; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      transition: left 0.4s ease;
+    }
+    .project-card:hover {
+      border-color: var(--green);
+      background: rgba(0,255,65,0.07);
+      box-shadow: 0 0 25px rgba(0,255,65,0.2);
+    }
+    .project-card:hover::before { left: 100%; }
+    .project-card .proj-name {
+      color: var(--cyan); font-size: 0.82rem;
+      font-weight: bold; margin-bottom: 0.3rem;
+    }
+    .project-card .proj-desc {
+      font-size: 0.72rem; color: rgba(0,255,65,0.65);
+      line-height: 1.5; margin-bottom: 0.5rem;
+    }
+    .project-card .proj-stack {
+      display: flex; flex-wrap: wrap; gap: 0.3rem;
+    }
+    .project-card .proj-stack span {
+      font-size: 0.58rem; padding: 2px 6px;
+      border: 1px solid rgba(0,240,255,0.4);
+      color: var(--cyan); border-radius: 2px;
+      background: rgba(0,240,255,0.05);
+    }
+
+    /* ===== SKILLS ===== */
+    .skills-list {
+      display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.5rem;
+    }
+    .skill-tag {
+      font-size: 0.68rem; padding: 3px 10px;
+      border: 1px solid rgba(0,255,65,0.35);
+      color: var(--green-dim); border-radius: 2px;
+      background: rgba(0,255,65,0.03);
+      transition: all 0.2s ease; cursor: default;
+    }
+    .skill-tag:hover {
+      border-color: var(--green); color: var(--green);
+      background: rgba(0,255,65,0.1);
+      box-shadow: 0 0 10px rgba(0,255,65,0.2);
+    }
+
+    /* ===== EXPERIENCE ===== */
+    .exp-item {
+      margin-bottom: 1rem; padding-left: 1.1rem;
+      border-left: 1px dashed rgba(0,255,65,0.3);
+      position: relative;
+    }
+    .exp-item::before {
+      content: '▸'; position: absolute;
+      left: -0.5rem; top: 0;
+      color: var(--green); background: var(--bg);
+      font-size: 0.95rem;
+    }
+    .exp-date { font-size: 0.65rem; color: var(--yellow); letter-spacing: 0.05em; }
+    .exp-role { font-size: 0.85rem; color: var(--cyan); font-weight: bold; margin: 0.1rem 0; }
+    .exp-company { font-size: 0.72rem; color: var(--green); margin-bottom: 0.2rem; }
+    .exp-desc { font-size: 0.7rem; color: rgba(0,255,65,0.6); line-height: 1.5; }
+
+    /* ===== STATS ===== */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 0.7rem; margin: 0.9rem 0;
+    }
+    .stat-box {
+      border: 1px solid rgba(0,255,65,0.2);
+      padding: 0.6rem; text-align: center;
+      background: rgba(0,255,65,0.02);
+    }
+    .stat-box .num {
+      font-size: 1.3rem; font-weight: bold; color: var(--green);
+      text-shadow: 0 0 12px rgba(0,255,65,0.5);
+    }
+    .stat-box .label {
+      font-size: 0.55rem; color: rgba(0,255,65,0.5);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.1rem;
+    }
+
+    /* ===== SERVICES ===== */
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.7rem; margin-top: 0.5rem;
+    }
+    .service-card {
+      border: 1px solid rgba(0,240,255,0.2);
+      background: rgba(0,240,255,0.02);
+      padding: 0.7rem; border-radius: 3px;
+      transition: all 0.25s;
+    }
+    .service-card:hover {
+      border-color: var(--cyan);
+      background: rgba(0,240,255,0.05);
+      box-shadow: 0 0 15px rgba(0,240,255,0.1);
+    }
+    .service-card .svc-name { color: var(--cyan); font-size: 0.78rem; font-weight: bold; }
+    .service-card .svc-price { color: var(--yellow); font-size: 0.7rem; margin-top: 0.25rem; }
+
+    /* ===== TESTIMONIALS ===== */
+    .testimonial {
+      border-left: 2px solid rgba(176,38,255,0.5);
+      padding: 0.4rem 0 0.4rem 0.9rem; margin-bottom: 0.8rem;
+      font-size: 0.72rem; line-height: 1.5;
+      color: rgba(0,255,65,0.7);
+    }
+    .testimonial .author { color: var(--purple); font-size: 0.68rem; margin-top: 0.25rem; }
+    .testimonial .role { color: rgba(176,38,255,0.5); font-size: 0.6rem; }
+
+    /* ===== CONTACT ===== */
+    .contact-links {
+      display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.6rem;
+    }
+    .contact-links a {
+      color: var(--green-dim); text-decoration: none;
+      font-size: 0.78rem; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .contact-links a:hover { color: var(--green); text-shadow: 0 0 8px rgba(0,255,65,0.6); }
+    .contact-links a::before { content: '>'; color: var(--red); font-weight: bold; }
+
+    /* ===== CERTS ===== */
+    .cert-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.6rem; margin-top: 0.5rem;
+    }
+    .cert-item {
+      border: 1px solid rgba(255,230,0,0.2);
+      padding: 0.5rem 0.7rem; font-size: 0.68rem;
+      color: rgba(0,255,65,0.65);
+      background: rgba(255,230,0,0.02);
+      border-radius: 2px;
+    }
+    .cert-item .cert-name { color: var(--yellow); font-weight: bold; }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      margin-top: 1.8rem; padding-top: 0.8rem;
+      border-top: 1px dashed rgba(0,255,65,0.2);
+      font-size: 0.62rem; color: rgba(0,255,65,0.35);
+      display: flex; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.5rem;
+    }
+
+    /* ===== ID CARD ===== */
+    .id-card {
+      position: sticky; top: 1.5rem;
+      border: 1px solid rgba(0,240,255,0.35);
+      background: linear-gradient(145deg, rgba(0,240,255,0.05), rgba(176,38,255,0.05));
+      border-radius: 8px; padding: 1.2rem;
+      backdrop-filter: blur(6px);
+      box-shadow: 0 0 30px rgba(0,240,255,0.15), inset 0 0 30px rgba(0,240,255,0.03);
+      overflow: hidden;
+      animation: holoPulse 4s ease-in-out infinite;
+    }
+    @keyframes holoPulse {
+      0%,100% { box-shadow: 0 0 30px rgba(0,240,255,0.15), inset 0 0 30px rgba(0,240,255,0.03); }
+      50% { box-shadow: 0 0 45px rgba(0,240,255,0.25), inset 0 0 40px rgba(0,240,255,0.06); }
+    }
+    .id-card::before {
+      content: ''; position: absolute;
+      top: -50%; left: -50%; width: 200%; height: 200%;
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg, rgba(0,240,255,0.08) 60deg,
+        transparent 120deg, rgba(176,38,255,0.08) 180deg,
+        transparent 240deg, rgba(0,240,255,0.08) 300deg,
+        transparent 360deg
+      );
+      animation: holoSpin 8s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes holoSpin { to { transform: rotate(360deg); } }
+    .id-card > * { position: relative; z-index: 1; }
+
+    .id-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid rgba(0,240,255,0.2);
+      padding-bottom: 0.6rem; margin-bottom: 0.8rem;
+    }
+    .id-header .id-title {
+      font-size: 0.65rem; letter-spacing: 0.2em;
+      text-transform: uppercase; color: var(--cyan);
+      text-shadow: 0 0 8px rgba(0,240,255,0.6);
+    }
+    .id-header .id-status {
+      font-size: 0.55rem; color: var(--green);
+      display: flex; align-items: center; gap: 0.3rem;
+    }
+    .id-status .pulse-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 8px var(--green);
+      animation: pulseDot 1.5s ease-in-out infinite;
+    }
+    @keyframes pulseDot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .id-avatar {
+      width: 70px; height: 70px; border-radius: 50%;
+      border: 2px solid var(--cyan);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.8rem; font-weight: bold; color: var(--cyan);
+      text-shadow: 0 0 15px rgba(0,240,255,0.8);
+      margin: 0 auto 0.6rem;
+      box-shadow: 0 0 20px rgba(0,240,255,0.3), inset 0 0 20px rgba(0,240,255,0.1);
+      animation: avatarGlow 3s ease-in-out infinite;
+    }
+    @keyframes avatarGlow {
+      0%,100% { box-shadow: 0 0 20px rgba(0,240,255,0.3), inset 0 0 20px rgba(0,240,255,0.1); }
+      50% { box-shadow: 0 0 35px rgba(0,240,255,0.5), inset 0 0 30px rgba(0,240,255,0.2); }
+    }
+
+    .id-name {
+      text-align: center; font-size: 0.95rem; font-weight: bold;
+      color: var(--green); letter-spacing: 0.1em;
+      text-shadow: 0 0 10px rgba(0,255,65,0.6);
+    }
+    .id-role {
+      text-align: center; font-size: 0.6rem; color: var(--cyan);
+      letter-spacing: 0.15em; text-transform: uppercase; margin-top: 0.2rem;
+    }
+
+    .id-barcode {
+      display: flex; justify-content: center; gap: 1px;
+      margin: 0.8rem 0 0.6rem; height: 28px;
+      align-items: flex-end; opacity: 0.7;
+    }
+    .id-barcode span {
+      display: inline-block; background: var(--cyan);
+      width: 2px; animation: barcodeFlicker 2s ease-in-out infinite;
+    }
+    @keyframes barcodeFlicker {
+      0%,100% { opacity: 0.7; } 50% { opacity: 0.4; }
+    }
+
+    .id-info-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.58rem; color: rgba(0,255,65,0.5);
+      margin-bottom: 0.3rem; letter-spacing: 0.05em;
+    }
+    .id-info-row .val { color: var(--green-dim); }
+
+    /* ===== DIAGNOSTICS ===== */
+    .diagnostics {
+      margin-top: 0.8rem;
+      border: 1px solid rgba(0,255,65,0.15);
+      background: rgba(0,0,0,0.4);
+      border-radius: 4px; padding: 0.7rem;
+    }
+    .diag-title {
+      font-size: 0.6rem; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--cyan);
+      margin-bottom: 0.5rem;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .diag-title::before { content: '⚡'; color: var(--yellow); }
+    .diag-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.6rem; margin-bottom: 0.35rem;
+      color: rgba(0,255,65,0.6);
+    }
+    .diag-bar {
+      flex: 1; height: 4px; background: rgba(0,255,65,0.1);
+      border-radius: 2px; margin: 0 0.5rem; overflow: hidden;
+    }
+    .diag-bar-fill {
+      height: 100%; border-radius: 2px;
+      transition: width 0.8s ease;
+      animation: barPulse 3s ease-in-out infinite;
+    }
+    @keyframes barPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+    .fill-green { background: linear-gradient(90deg, var(--green-dark), var(--green)); }
+    .fill-cyan { background: linear-gradient(90deg, #004466, var(--cyan)); }
+    .fill-yellow { background: linear-gradient(90deg, #665500, var(--yellow)); }
+    .fill-purple { background: linear-gradient(90deg, #440066, var(--purple)); }
+    .diag-val { font-size: 0.55rem; color: var(--green); min-width: 30px; text-align: right; }
+
+    /* ===== LIVE CLOCK ===== */
+    .live-clock {
+      text-align: center; margin-top: 0.7rem;
+      padding-top: 0.7rem;
+      border-top: 1px solid rgba(0,240,255,0.15);
+    }
+    .live-clock .time {
+      font-size: 1.5rem; font-weight: bold; color: var(--cyan);
+      text-shadow: 0 0 20px rgba(0,240,255,0.6);
+      letter-spacing: 0.1em; font-variant-numeric: tabular-nums;
+    }
+    .live-clock .date {
+      font-size: 0.55rem; color: rgba(0,255,65,0.5);
+      letter-spacing: 0.15em; text-transform: uppercase; margin-top: 0.15rem;
+    }
+
+    /* ===== COMMAND TERMINAL ===== */
+    .cmd-terminal {
+      margin-top: 1.2rem;
+      border: 1px solid rgba(0,255,65,0.2);
+      background: rgba(0,0,0,0.5);
+      border-radius: 3px; overflow: hidden;
+    }
+    .cmd-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.4rem 0.8rem;
+      background: rgba(0,255,65,0.05);
+      border-bottom: 1px solid rgba(0,255,65,0.15);
+      font-size: 0.6rem; color: var(--cyan);
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .cmd-header .hint { color: rgba(0,255,65,0.35); font-size: 0.5rem; }
+    .cmd-output {
+      padding: 0.6rem 0.8rem; font-size: 0.7rem;
+      color: var(--green-dim); min-height: 40px;
+      max-height: 120px; overflow-y: auto; line-height: 1.5;
+    }
+    .cmd-output .cmd-echo { color: var(--cyan); }
+    .cmd-output .cmd-result { color: var(--green); }
+    .cmd-output .cmd-error { color: var(--red); }
+    .cmd-input-line {
+      display: flex; align-items: center;
+      padding: 0.5rem 0.8rem;
+      border-top: 1px solid rgba(0,255,65,0.15);
+      background: rgba(0,255,65,0.02);
+    }
+    .cmd-input-line .prompt-symbol {
+      color: var(--red); margin-right: 0.5rem;
+      font-weight: bold; font-size: 0.8rem;
+    }
+    .cmd-input {
+      flex: 1; background: transparent;
+      border: none; outline: none; color: var(--green);
+      font-family: var(--font-mono); font-size: 0.75rem;
+      caret-color: var(--green);
+    }
+    .cmd-input::placeholder { color: rgba(0,255,65,0.25); font-size: 0.65rem; }
+
+    .voice-btn {
+      background: transparent;
+      border: 1px solid rgba(0,240,255,0.4);
+      color: var(--cyan); width: 30px; height: 30px;
+      border-radius: 50%; cursor: pointer;
+      font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; margin-left: 0.4rem; flex-shrink: 0;
+    }
+    .voice-btn:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px rgba(0,240,255,0.4);
+    }
+    .voice-btn.listening {
+      animation: voicePulse 1s ease-in-out infinite;
+      border-color: var(--red); color: var(--red);
+    }
+    @keyframes voicePulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,0,60,0.5); }
+      50% { box-shadow: 0 0 0 10px rgba(255,0,60,0); }
+    }
+
+    /* ===== SOUND TOGGLE ===== */
+    .sound-toggle {
+      position: fixed; bottom: 1.2rem; right: 1.2rem; z-index: 100;
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid rgba(0,255,65,0.4);
+      background: rgba(5,10,5,0.9);
+      color: var(--green); font-size: 1.1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.25s;
+      box-shadow: 0 0 15px rgba(0,255,65,0.15);
+    }
+    .sound-toggle:hover {
+      border-color: var(--green);
+      box-shadow: 0 0 25px rgba(0,255,65,0.3);
+      transform: scale(1.1);
+    }
+    .sound-toggle.off { color: rgba(0,255,65,0.3); border-color: rgba(0,255,65,0.2); }
+
+    /* ===== FLOATING PARTICLES ===== */
+    .floating-particles {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 1; overflow: hidden;
+    }
+    .fp {
+      position: absolute; width: 2px; height: 2px;
+      background: var(--cyan); border-radius: 50%;
+      box-shadow: 0 0 6px var(--cyan);
+      animation: floatUp linear infinite; opacity: 0;
+    }
+    @keyframes floatUp {
+      0% { transform: translateY(0) translateX(0); opacity: 0; }
+      10% { opacity: 0.8; }
+      90% { opacity: 0.8; }
+      100% { transform: translateY(-100vh) translateX(20px); opacity: 0; }
+    }
+
+    /* ===== CONFETTI ===== */
+    #confettiCanvas {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 9998;
+    }
+
+    /* ===== HIRE TOAST ===== */
+    .hire-toast {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: rgba(5,10,5,0.95);
+      border: 2px solid var(--green);
+      padding: 1.5rem 2.5rem;
+      border-radius: 8px; z-index: 10000;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(0,255,65,0.5);
+      opacity: 0; pointer-events: none;
+      transition: all 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+      font-family: var(--font-mono);
+    }
+    .hire-toast.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    .hire-toast h2 {
+      color: var(--green); font-size: 1.4rem;
+      letter-spacing: 0.15em; margin-bottom: 0.5rem;
+      text-shadow: 0 0 20px rgba(0,255,65,0.8);
+    }
+    .hire-toast p { color: var(--cyan); font-size: 0.8rem; letter-spacing: 0.05em; }
+
+    /* ===== TYPEWRITER BOOT ===== */
+    .typewriter {
+      font-size: 0.7rem; color: var(--green-dim);
+      line-height: 1.6; white-space: pre-wrap;
+      min-height: 2rem;
+    }
+    .typewriter .tw-cursor {
+      display: inline-block; width: 7px; height: 1em;
+      background: var(--green); vertical-align: text-bottom;
+      animation: blink 0.8s step-end infinite; margin-left: 1px;
+    }
+
+    /* ============================================
+       NEW FEATURE: AI CHATBOT (FARHA-AI)
+       ============================================ */
+    .chatbot-panel {
+      position: fixed;
+      bottom: 1.2rem;
+      left: 1.2rem;
+      width: 320px;
+      max-width: calc(100vw - 2.4rem);
+      z-index: 500;
+      font-family: var(--font-mono);
+    }
+
+    .chat-toggle {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      border: 1px solid var(--cyan);
+      background: rgba(5,10,5,0.95);
+      color: var(--cyan);
+      font-size: 1.4rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 20px rgba(0,240,255,0.3);
+      transition: all 0.25s;
+      position: relative;
+    }
+    .chat-toggle:hover {
+      box-shadow: 0 0 35px rgba(0,240,255,0.5);
+      transform: scale(1.08);
+    }
+    .chat-toggle .chat-badge {
+      position: absolute; top: -3px; right: -3px;
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      background: var(--red);
+      color: white; font-size: 0.55rem;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold;
+      animation: badgePulse 2s ease-in-out infinite;
+    }
+    @keyframes badgePulse {
+      0%,100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
+    .chat-window {
+      position: absolute;
+      bottom: 64px; left: 0;
+      width: 320px; max-width: calc(100vw - 2.4rem);
+      height: 420px;
+      background: rgba(5,10,5,0.98);
+      border: 1px solid var(--cyan);
+      border-radius: 8px;
+      box-shadow: 0 0 40px rgba(0,240,255,0.3);
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      backdrop-filter: blur(8px);
+    }
+    .chat-window.open { display: flex; }
+
+    .chat-header {
+      padding: 0.7rem 0.9rem;
+      background: rgba(0,240,255,0.08);
+      border-bottom: 1px solid rgba(0,240,255,0.2);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .chat-header .chat-title {
+      font-size: 0.75rem; color: var(--cyan);
+      letter-spacing: 0.1em; font-weight: bold;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .chat-header .chat-title::before {
+      content: '🤖';
+      font-size: 0.9rem;
+    }
+    .chat-header .chat-close {
+      background: transparent; border: none;
+      color: var(--red); font-size: 1.1rem;
+      cursor: pointer; padding: 0 0.3rem;
+    }
+    .chat-header .chat-close:hover { color: #ff5f56; }
+
+    .chat-messages {
+      flex: 1; overflow-y: auto;
+      padding: 0.8rem;
+      display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb {
+      background: var(--green-dark); border-radius: 2px;
+    }
+
+    .chat-msg {
+      max-width: 85%;
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.72rem;
+      line-height: 1.5;
+      animation: msgIn 0.3s ease;
+    }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .chat-msg.bot {
+      align-self: flex-start;
+      background: rgba(0,240,255,0.08);
+      border: 1px solid rgba(0,240,255,0.2);
+      color: var(--cyan);
+      border-bottom-left-radius: 2px;
+    }
+    .chat-msg.user {
+      align-self: flex-end;
+      background: rgba(0,255,65,0.1);
+      border: 1px solid rgba(0,255,65,0.3);
+      color: var(--green);
+      border-bottom-right-radius: 2px;
+    }
+    .chat-msg.typing {
+      color: rgba(0,240,255,0.6);
+      font-style: italic;
+    }
+    .chat-msg.typing::after {
+      content: '...';
+      animation: dots 1.5s steps(4, end) infinite;
+    }
+    @keyframes dots {
+      0%,20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80%,100% { content: '...'; }
+    }
+
+    .chat-suggestions {
+      padding: 0.4rem 0.8rem;
+      display: flex; flex-wrap: wrap; gap: 0.3rem;
+      border-top: 1px solid rgba(0,240,255,0.1);
+    }
+    .chat-suggestion {
+      font-size: 0.6rem;
+      padding: 3px 8px;
+      border: 1px solid rgba(0,240,255,0.3);
+      background: rgba(0,240,255,0.03);
+      color: var(--cyan);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-mono);
+    }
+    .chat-suggestion:hover {
+      background: rgba(0,240,255,0.12);
+      border-color: var(--cyan);
+    }
+
+    .chat-input-area {
+      display: flex; align-items: center;
+      padding: 0.5rem 0.7rem;
+      border-top: 1px solid rgba(0,240,255,0.2);
+      background: rgba(0,240,255,0.02);
+      gap: 0.4rem;
+    }
+    .chat-input-area input {
+      flex: 1; background: transparent;
+      border: 1px solid rgba(0,240,255,0.25);
+      border-radius: 16px;
+      padding: 0.4rem 0.75rem;
+      color: var(--cyan);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .chat-input-area input:focus { border-color: var(--cyan); }
+    .chat-input-area input::placeholder { color: rgba(0,240,255,0.3); }
+    .chat-send {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--cyan);
+      background: rgba(0,240,255,0.1);
+      color: var(--cyan);
+      cursor: pointer;
+      font-size: 0.8rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .chat-send:hover {
+      background: rgba(0,240,255,0.25);
+      box-shadow: 0 0 12px rgba(0,240,255,0.4);
+    }
+
+    /* ============================================
+       NEW FEATURE: RETRO MINI-GAME (HACK THE FIREWALL)
+       ============================================ */
+    .game-panel {
+      margin-top: 1.2rem;
+      border: 1px solid rgba(255,0,60,0.4);
+      background: rgba(255,0,60,0.03);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .game-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.5rem 0.8rem;
+      background: rgba(255,0,60,0.08);
+      border-bottom: 1px solid rgba(255,0,60,0.2);
+      font-size: 0.65rem; color: var(--red);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer;
+    }
+    .game-header .game-toggle {
+      color: var(--yellow);
+      font-size: 0.6rem;
+    }
+    .game-body {
+      padding: 0.8rem;
+      display: none;
+    }
+    .game-body.open { display: block; }
+    .game-info {
+      display: flex; justify-content: space-between;
+      font-size: 0.65rem; color: var(--yellow);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+    .game-info span { color: var(--red); font-weight: bold; }
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 180px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,0,60,0.3);
+      border-radius: 3px;
+      cursor: crosshair;
+    }
+    .game-controls {
+      display: flex; justify-content: space-between;
+      margin-top: 0.5rem; font-size: 0.6rem;
+      color: rgba(0,255,65,0.6);
+    }
+    .game-btn {
+      background: transparent;
+      border: 1px solid var(--red);
+      color: var(--red);
+      padding: 3px 12px;
+      border-radius: 2px;
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .game-btn:hover {
+      background: rgba(255,0,60,0.15);
+      box-shadow: 0 0 12px rgba(255,0,60,0.3);
+    }
+    .game-status {
+      text-align: center;
+      font-size: 0.65rem;
+      color: var(--yellow);
+      margin-top: 0.4rem;
+      min-height: 1rem;
+    }
+
+    /* ============================================
+       NEW FEATURE: WEBCAM FACE SCAN
+       ============================================ */
+    .scan-panel {
+      margin-top: 0.8rem;
+      border: 1px solid rgba(0,240,255,0.3);
+      background: rgba(0,240,255,0.03);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .scan-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.5rem 0.8rem;
+      background: rgba(0,240,255,0.08);
+      border-bottom: 1px solid rgba(0,240,255,0.2);
+      font-size: 0.65rem; color: var(--cyan);
+      letter-spacing: 0.1em; text-transform: uppercase;
+      cursor: pointer;
+    }
+    .scan-header .scan-toggle {
+      color: var(--yellow);
+      font-size: 0.6rem;
+    }
+    .scan-body {
+      padding: 0.8rem;
+      display: none;
+      text-align: center;
+    }
+    .scan-body.open { display: block; }
+    .scan-video-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: #000;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid rgba(0,240,255,0.3);
+    }
+    #scanVideo {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      filter: grayscale(1) contrast(1.2) brightness(0.9);
+    }
+    .scan-overlay {
+      position: absolute; inset: 0;
+      pointer-events: none;
+    }
+    .scan-line {
+      position: absolute;
+      left: 0; right: 0;
+      height: 2px;
+      background: var(--cyan);
+      box-shadow: 0 0 15px var(--cyan);
+      animation: scanMove 2s linear infinite;
+    }
+    @keyframes scanMove {
+      0% { top: 0%; }
+      100% { top: 100%; }
+    }
+    .scan-corners {
+      position: absolute; inset: 10px;
+      border: 1px solid rgba(0,240,255,0.6);
+    }
+    .scan-corners::before,
+    .scan-corners::after {
+      content: ''; position: absolute;
+      width: 12px; height: 12px;
+      border: 2px solid var(--cyan);
+    }
+    .scan-corners::before {
+      top: -1px; left: -1px;
+      border-right: none; border-bottom: none;
+    }
+    .scan-corners::after {
+      bottom: -1px; right: -1px;
+      border-left: none; border-top: none;
+    }
+    .scan-btn {
+      background: transparent;
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 0.4rem 1rem;
+      border-radius: 2px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 0.5rem;
+      letter-spacing: 0.1em;
+    }
+    .scan-btn:hover {
+      background: rgba(0,240,255,0.12);
+      box-shadow: 0 0 15px rgba(0,240,255,0.3);
+    }
+    .scan-status {
+      font-size: 0.6rem;
+      color: var(--yellow);
+      margin-top: 0.4rem;
+      min-height: 1rem;
+      letter-spacing: 0.05em;
+    }
+    .scan-verified {
+      color: var(--green) !important;
+      font-weight: bold;
+      text-shadow: 0 0 10px rgba(0,255,65,0.8);
+    }
+
+    /* ============================================
+       NEW FEATURE: VISITOR COUNTER
+       ============================================ */
+    .visitor-counter {
+      position: fixed;
+      top: 1.2rem;
+      right: 1.2rem;
+      z-index: 100;
+      background: rgba(5,10,5,0.9);
+      border: 1px solid rgba(0,255,65,0.3);
+      border-radius: 4px;
+      padding: 0.4rem 0.7rem;
+      font-size: 0.6rem;
+      color: var(--green-dim);
+      letter-spacing: 0.08em;
+      display: flex; align-items: center; gap: 0.5rem;
+      backdrop-filter: blur(4px);
+      box-shadow: 0 0 15px rgba(0,255,65,0.1);
+    }
+    .visitor-counter .vc-label {
+      color: rgba(0,255,65,0.5);
+      text-transform: uppercase;
+      font-size: 0.5rem;
+    }
+    .visitor-counter .vc-num {
+      color: var(--green);
+      font-weight: bold;
+      font-size: 0.75rem;
+      text-shadow: 0 0 8px rgba(0,255,65,0.6);
+      font-variant-numeric: tabular-nums;
+    }
+    .visitor-counter .vc-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulseDot 1.5s ease-in-out infinite;
+    }
+
+    @media (max-width: 600px) {
+      .visitor-counter { top: auto; bottom: 4.5rem; right: 0.8rem; }
+    }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb {
+      background: var(--green-dark);
+      border: 1px solid rgba(0,255,65,0.3);
+    }
+    ::-webkit-scrollbar-thumb:hover { background: var(--green-dim); }
+    ::selection { background: var(--green); color: var(--bg); }
+  </style>
+</head>
+<body>
+
+  <!-- Matrix rain -->
+  <canvas id="matrix"></canvas>
+
+  <!-- Confetti canvas -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Scanlines -->
+  <div class="scanlines"></div>
+
+  <!-- Floating particles -->
+  <div class="floating-particles" id="floatingParticles"></div>
+
+  <!-- Cursor trail -->
+  <div class="cursor-trail" id="cursorTrail"></div>
+
+  <!-- Visitor counter -->
+  <div class="visitor-counter">
+    <span class="vc-dot"></span>
+    <span class="vc-label">Visitors</span>
+    <span class="vc-num" id="visitorNum">0000</span>
+  </div>
+
+  <!-- Hire toast -->
+  <div class="hire-toast" id="hireToast">
+    <h2>⚡ HIRED ⚡</h2>
+    <p>Thanks for the consideration! Let's build something amazing.</p>
+    <p style="margin-top: 0.5rem; font-size: 0.7rem; color: var(--yellow);">farhakousar576@gmail.com</p>
+  </div>
+
+  <!-- Sound toggle -->
+  <button class="sound-toggle" id="soundToggle" title="Toggle ambient sound">🔊</button>
+
+  <!-- AI CHATBOT -->
+  <div class="chatbot-panel">
+    <div class="chat-window" id="chatWindow">
+      <div class="chat-header">
+        <div class="chat-title">FARHA-AI</div>
+        <button class="chat-close" id="chatClose">×</button>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-msg bot">Hey there! 👋 I'm FARHA-AI, an assistant trained on Farha's resume. Ask me anything about her skills, projects, experience, or how to get in touch!</div>
+      </div>
+      <div class="chat-suggestions" id="chatSuggestions">
+        <button class="chat-suggestion" data-q="What are your skills?">skills</button>
+        <button class="chat-suggestion" data-q="Show me your projects">projects</button>
+        <button class="chat-suggestion" data-q="What is your experience?">experience</button>
+        <button class="chat-suggestion" data-q="How can I contact you?">contact</button>
+        <button class="chat-suggestion" data-q="Are you open to work?">hire</button>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" placeholder="Ask FARHA-AI..." autocomplete="off">
+        <button class="chat-send" id="chatSend">➤</button>
+      </div>
+    </div>
+    <button class="chat-toggle" id="chatToggle" title="Chat with FARHA-AI">
+      🤖
+      <span class="chat-badge" id="chatBadge">1</span>
+    </button>
+  </div>
+
+  <!-- Main content -->
+  <div class="container">
+    <div class="layout">
+
+      <!-- LEFT COLUMN -->
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot r"></span>
+          <span class="dot y"></span>
+          <span class="dot g"></span>
+          <span class="terminal-bar-title">farha@kousar: ~/portfolio — zsh — 120×40</span>
+        </div>
+
+        <div class="terminal-body">
+
+          <!-- Typewriter boot (NEW) -->
+          <div class="prompt-line d1">
+            <div class="typewriter" id="typewriterBoot"></div>
+          </div>
+
+          <!-- Boot sequence -->
+          <div class="prompt-line d2">
+            <span class="prompt"><span class="user">farha</span>@<span class="path">kousar</span>:<span class="path">~</span><span class="symbol">$</span></span>
+            <span class="output"> ./init_profile.sh --year=2026</span>
+          </div>
+          <div class="prompt-line d3">
+            <span class="output"><span class="dim">[</span> <span class="hl">OK</span> <span class="dim">]</span> Loading identity module... <span class="dim">done</span></span>
+          </div>
+          <div class="prompt-line d4">
+            <span class="output"><span class="dim">[</span> <span class="hl">OK</span> <span class="dim">]</span> Mounting skill matrix... <span class="dim">done</span></span>
+          </div>
+          <div class="prompt-line d5">
+            <span class="output"><span class="dim">[</span> <span class="warn">!!</span> <span class="dim">]</span> Bypassing firewall... <span class="hl">access granted</span></span>
+          </div>
+
+          <!-- ASCII Name -->
+          <div class="prompt-line d6">
+            <pre class="ascii-name">
+  ███████╗ █████╗ ██████╗ ██╗  ██╗ █████╗     ██╗  ██╗ ██████╗ ██╗   ██╗███████╗ █████╗ ██████╗ 
+  ██╔════╝██╔══██╗██╔══██╗██║  ██║██╔══██╗    ██║ ██╔╝██╔═══██╗██║   ██║██╔════╝██╔══██╗██╔══██╗
+  █████╗  ███████║██████╔╝███████║███████║    █████╔╝ ██║   ██║██║   ██║███████╗███████║██████╔╝
+  ██╔══╝  ██╔══██║██╔══██╗██╔══██║██╔══██║    ██╔═██╗ ██║   ██║██║   ██║╚════██║██╔══██║██╔══██╗
+  ██║     ██║  ██║██║  ██║██║  ██║██║  ██║    ██║  ██╗╚██████╔╝╚██████╔╝███████║██║  ██║██║  ██║
+  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝    ╚═╝  ╚═╝ ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝
+            </pre>
+          </div>
+
+          <!-- Glitch title -->
+          <div class="prompt-line d7">
+            <h1 class="glitch" data-text="DATA ANALYST & AI/ML ENGINEER">DATA ANALYST & AI/ML ENGINEER</h1>
+          </div>
+
+          <!-- Bio -->
+          <div class="prompt-line d8">
+            <span class="prompt"><span class="user">farha</span>@<span class="path">kousar</span>:<span class="path">~</span><span class="symbol">$</span></span>
+            <span class="output"> cat about.txt</span>
+          </div>
+          <div class="prompt-line d9">
+            <span class="output">
+              <span class="hl">></span> B.E. in AIML (2025) | Data Analytics Intern @ Wadhwani Foundation.<br>
+              <span class="hl">></span> Skilled in <span class="warn">Python</span>, <span class="warn">SQL</span>, <span class="warn">Power BI</span>, <span class="warn">Looker Studio</span>, <span class="warn">Excel</span>, <span class="warn">Java</span>, <span class="warn">AWS</span>.<br>
+              <span class="hl">></span> Improved team productivity by <span class="hl">25%</span> through data-driven insights.<br>
+              <span class="hl">></span> Known for analytical thinking, problem solving, collaboration, and leadership.<br>
+              <span class="hl">></span> Delivering scalable solutions and actionable insights from raw data.
+            </span>
+          </div>
+
+          <!-- Stats -->
+          <div class="prompt-line d9">
+            <div class="stats">
+              <div class="stat-box"><div class="num">14K</div><div class="label">LinkedIn</div></div>
+              <div class="stat-box"><div class="num">220</div><div class="label">GitHub</div></div>
+              <div class="stat-box"><div class="num">50+</div><div class="label">Mentored</div></div>
+              <div class="stat-box"><div class="num">25+</div><div class="label">Projects</div></div>
+            </div>
+          </div>
+
+          <!-- Skills -->
+          <div class="prompt-line d10">
+            <span class="prompt"><span class="user">farha</span>@<span class="path">kousar</span>:<span class="path">~</span><span class="symbol">$</span></span>
+            <span class="output"> ls -la ./skills/</span>
+          </div>
+          <div class="prompt-line d10">
+            <div class="skills-list">
+              <span class="skill-tag">Python</span><span class="skill-tag">C++</span>
+              <span class="skill-tag">Java</span><span class="skill-tag">SQL</span>
+              <span class="skill-tag">HTML</span><span class="skill-tag">CSS</span>
+              <span class="skill-tag">NumPy</span><span class="skill-tag">Pandas</span>
+              <span class="skill-tag">Matplotlib</span><span class="skill-tag">Scikit-learn</span>
+              <span class="skill-tag">Seaborn</span><span class="skill-tag">Flask</span>
+              <span class="skill-tag">Streamlit</span><span class="skill-tag">Excel</span>
+              <span class="skill-tag">Google Sheets</span><span class="skill-tag">Looker Studio</span>
+              <span class="skill-tag">Power BI</span><span class="skill-tag">Tableau</span>
+              <span class="skill-tag">AWS</span><span class="skill-tag">Google Cloud</span>
+              <span class="skill-tag">IBM Watson</span><span class="skill-tag">GitHub</span>
+              <span class="skill-tag">Git</span><span class="skill-tag">Vercel</span>
+              <span class="skill-tag">Jupyter</span><span class="skill-tag">Kaggle</span>
+              <span class="skill-tag">VS Code</span><span class="skill-tag">PyCharm</span>
+              <span class="skill-tag">Anaconda</span>
+            </div>
+          </div>
+
+          <!-- Experience -->
+          <div class="prompt-line d11">
+            <span class="prompt"><span class="user">farha</span>@<span class="path">kousar</span>:<span class="path">~</span><span class="symbol">$</span></span>
+            <span class="output"> cat experience.log</span>
+          </div>
+          <div class="prompt-line d11">
+            <div class="exp-item">
+              <div class="exp-date">Aug 2025 – Present</div>
+              <div class="exp-role">Data Analytics Intern</div>
+              <div class="exp-company">Wadhwani Foundation, Bengaluru</div>
+              <div class="exp-desc">Analyzed data reports using Advanced Excel (VLOOKUP, Pivot Tables) and Power BI, reducing manual reporting by 30%. Coordinated onboarding of institutes, faculty, and students, ensuring accurate MIS and reporting.</div>
+            </div>
+            <div class="exp-item">
+              <div class="exp-date">Mar 2025 – Apr 2025</div>
+              <div class="exp-role">Python Developer Intern</div>
+              <div class="exp-company">Infosys SpringBoard, Bengaluru</div>
+              <div class="exp-desc">Built backend services using Python, Flask, and SQLAlchemy, improving operational efficiency by 70%. Integrated authentication and order management APIs, increasing system usability by 40%.</div>
+            </div>
+          </div>
+
+          <!-- Projects -->
+          <div class="prompt-line d12">
+            <span class="prompt"><span class="user">farha</span>@<span class="path">kousar</span>:<span class="path">~</span><span class="symbol">$</span></span>
+            <span class="output"> find ./projects -maxdepth 1 -type f -name "*.md"</span>
+          </div>
+          <div class="prompt-line d12">
+            <div class="project-grid">
+              <div class="project-card tilt-card">
+                <div class="proj-name">// smart_discount_analyzer</div>
+                <div class="proj-desc">Analyzed 50,000+ customer reviews using sentiment analysis to identify discount-eligible feedback. Built Looker Studio dashboard improving targeted promotions by 52.2% and reducing manual review by 80%.</div>
+                <div class="proj-stack"><span>Python</span><span>SQL</span><span>Looker Studio</span></div>
+              </div>
+              <div class="project-card tilt-card">
+                <div class="proj-name">// hifi_delivery_system</div>
+                <div class="proj-desc">Full-stack delivery management system with order tracking, role-based dashboards, and database integration. Optimized SQL queries reducing response time by 35%.</div>
+                <div class="proj-stack"><span>Flask</span><span>SQLAlchemy</span><span>JavaScript</span></div>
+              </div>
+              <div class="project-card tilt-card">
+                <div class="proj-name">// hr_analytics</div>
+                <div class="proj-desc">Attrition prediction model on 4,000+ records achieving 91% accuracy. Power BI/Tableau dashboards reducing reporting time by 80%.</div>
+                <div class="proj-stack"><span>Python</span><span>Logistic Regression</span><span>Power BI</span></div>
+              </div>
+              <div class="project-card tilt-card">
+                <div class="proj-name">// automated_checkout</div>
+                <div class="proj-desc">RFID-based automated checkout system detecting and billing items without manual scanning. Built with Arduino/Raspberry Pi and Python/C++.</div>
+                <div class="proj-stack"><span>Arduino</span><span>Raspberry Pi</span><span>Python/C++</span></div>
+              </div>
+              <div class="project-card tilt-card">
+                <div class="proj-name">// zepto_sales_intel</div>
+                <div class="proj-desc">Analyzed pricing on 300+ products identifying 6.71% price increase affecting conversion. 3.4x revenue boost via influencer campaigns.</div>
+                <div class="proj-stack"><span>Data Viz</span><span>Analytics</span><span>Excel</span></div>
+              </div>
+              <div class="project-card tilt-card">
+                <div class="proj-name">// foodiebot</div>
+                <div class="proj-desc">AI-powered chatbot using IBM Watson with NLP and ML integration. Designed conversational flows and demonstrated project leadership.</div>
+                <div class="proj-stack"><span>IBM Watson</span><span>NLP</span><span>Python</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Certifications -->
+          <div class="prompt-line d13">
+            <span class="prompt"><span class="user">farha</span>@<span class="path">kousar</span>:<span class="path">~</span><span class="symbol">$</span></span>
+            <span class="output"> ls ./certifications/</span>
+          </div>
+          <div class="prompt-line d13">
+            <div class="cert-grid">
+              <div class="cert-item"><span class="cert-name">Oracle Certified Foundations Associate</span> — Oracle</div>
+              <div class="cert-item"><span class="cert-name">AI/ML for Geodata Analysis</span> — ISRO</div>
+              <div class="cert-item"><span class="cert-name">Python for Data Science</span> — NPTEL</div>
+              <div class="cert-item"><span class="cert-name">Life Skills (Jeevan Kaushal)</span> — Wadhwani Foundation</div>
+              <div class="cert-item"><span class="cert-name">Prompt Engineering</span> — Dubai Future Foundation</div>
+              <div class="cert-item"><span class="cert-name">GitHub Foundations</span> — GitHub</div>
+            </div>
+          </div>
+
+          <!-- Services -->
+          <div class="prompt-line d14">
+            <span class="prompt"><span class="user">farha</span>@<span class="path">kousar</span>:<span class="path">~</span><span class="symbol">$</span></span>
+            <span class="output"> ./services.sh --list</span>
+          </div>
+          <div class="prompt-line d14">
+            <div class="services-grid">
+              <div class="service-card"><div class="svc-name">Resume Review</div><div class="svc-price">$50</div></div>
+              <div class="service-card"><div class="svc-name">Logo Design</div><div class="svc-price">$100</div></div>
+              <div class="service-card"><div class="svc-name">Data Reporting</div><div class="svc-price">$150</div></div>
+              <div class="service-card"><div class="svc-name">Business Analysis</div><div class="svc-price">$200</div></div>
+              <div class="service-card"><div class="svc-name">Chatbot Development</div><div class="svc-price">$250</div></div>
+              <div class="service-card"><div class="svc-name">1:1 Mentorship</div><div class="svc-price">$30/hr</div></div>
+            </div>
+          </div>
+
+          <!-- Testimonials -->
+          <div class="prompt-line d15">
+            <span class="prompt"><span class="user">farha</span>@<span class="path">kousar</span>:<span class="path">~</span><span class="symbol">$</span></span>
+            <span class="output"> cat recommendations.log</span>
+          </div>
+          <div class="prompt-line d15">
+            <div class="testimonial">
+              "Farha is an exceptional professional with a strong work ethic. Her analytical mindset and innovative approach to problem-solving set her apart."
+              <div class="author">Sharmila A</div><div class="role">Pre-final year student @KNSIT</div>
+            </div>
+            <div class="testimonial">
+              "Farha consistently demonstrated exceptional technical skills. Her collaborative spirit and strong communication skills made her a valuable team member."
+              <div class="author">Rabiya Naaz A.F</div><div class="role">SWE Fellow @Headstarter</div>
+            </div>
+            <div class="testimonial">
+              "Her exceptional problem-solving skills and attention to detail were instrumental in project success. She always thinks out of the box."
+              <div class="author">Sanjana Kumari</div><div class="role">3rd Year Student @KNSIT</div>
+            </div>
+          </div>
+
+          <!-- Extracurricular -->
+          <div class="prompt-line d16">
+            <span class="prompt"><span class="user">farha</span>@<span class="path">kousar</span>:<span class="path">~</span><span class="symbol">$</span></span>
+            <span class="output"> cat extracurricular.log</span>
+          </div>
+          <div class="prompt-line d16">
+            <span class="output">
+              <span class="hl">></span> <span class="warn">Ambassador Roles:</span> Nauki Campus Squad, Career Buddy @ Wadhwani Foundation,<br>
+              &nbsp;&nbsp;NGWL'25 @ McKinsey, Microsoft Learn Student Ambassador,<br>
+              &nbsp;&nbsp;Gold Student Ambassador @ LetsUpgrade & Coding Ninjas<br>
+              <span class="hl">></span> <span class="warn">Achievements:</span> Top Mentor @ Wadhwani Foundation, Hackathon Winner @ Mettle,<br>
+              &nbsp;&nbsp;NPTEL Star Awardee, Coding Leader Topper @ KNSIT,<br>
+              &nbsp;&nbsp;Open Source Contributor @ Hacktoberfest & Hacksquad
+            </span>
+          </div>
+
+          <!-- Contact -->
+          <div class="prompt-line d17">
+            <span class="prompt"><span class="user">farha</span>@<span class="path">kousar</span>:<span class="path">~</span><span class="symbol">$</span></span>
+            <span class="output"> ./connect.sh --all</span>
+          </div>
+          <div class="prompt-line d17">
+            <div class="contact-links">
+              <a href="https://farha-kousar.vercel.app" target="_blank">website</a>
+              <a href="https://linkedin.com/in/farhakousar" target="_blank">linkedin</a>
+              <a href="https://github.com/FarhaKousar1601" target="_blank">github</a>
+              <a href="mailto:farhakousar576@gmail.com">email</a>
+              <a href="tel:6362513520">phone</a>
+            </div>
+          </div>
+
+          <!-- INTERACTIVE COMMAND TERMINAL -->
+          <div class="prompt-line d18">
+            <div class="cmd-terminal">
+              <div class="cmd-header">
+                <span>⚡ interactive_shell</span>
+                <span class="hint">type 'help' | try 'hire'</span>
+              </div>
+              <div class="cmd-output" id="cmdOutput">
+                <span class="cmd-result">Welcome. Type 'help' for commands. Try 'hire' for a surprise!</span>
+              </div>
+              <div class="cmd-input-line">
+                <span class="prompt-symbol">$</span>
+                <input type="text" class="cmd-input" id="cmdInput" placeholder="enter command..." autocomplete="off" spellcheck="false">
+                <button class="voice-btn" id="voiceBtn" title="Voice command">🎤</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- NEW: RETRO MINI-GAME -->
+          <div class="prompt-line d18">
+            <div class="game-panel">
+              <div class="game-header" id="gameHeader">
+                <span>🎮 hack_the_firewall.exe</span>
+                <span class="game-toggle" id="gameToggle">▼ open</span>
+              </div>
+              <div class="game-body" id="gameBody">
+                <div class="game-info">
+                  <span>SCORE: <span id="gameScore">0</span></span>
+                  <span>TIME: <span id="gameTime">30</span>s</span>
+                  <span>LEVEL: <span id="gameLevel">1</span></span>
+                </div>
+                <canvas id="gameCanvas" width="600" height="180"></canvas>
+                <div class="game-controls">
+                  <button class="game-btn" id="gameStartBtn">▶ START</button>
+                  <span>click targets to hack</span>
+                  <button class="game-btn" id="gameResetBtn">↻ RESET</button>
+                </div>
+                <div class="game-status" id="gameStatus">Press START to begin hacking the firewall.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Final prompt -->
+          <div class="prompt-line d18">
+            <span class="prompt"><span class="user">farha</span>@<span class="path">kousar</span>:<span class="path">~</span><span class="symbol">$</span></span>
+            <span class="output"> <span class="cursor"></span></span>
+          </div>
+
+          <div class="footer">
+            <span>© 2026 FARHA KOUSAR // all rights reserved</span>
+            <span>Bengaluru, Karnataka | farhakousar576@gmail.com</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <div class="id-card">
+          <div class="id-header">
+            <span class="id-title">ID // 2026</span>
+            <span class="id-status"><span class="pulse-dot"></span>ONLINE</span>
+          </div>
+          <div class="id-avatar">FK</div>
+          <div class="id-name">FARHA KOUSAR</div>
+          <div class="id-role">Data Analyst & AI/ML Engineer</div>
+          <div class="id-barcode" id="barcode"></div>
+          <div class="id-info-row"><span>ID:</span><span class="val">FK-2026-AIML</span></div>
+          <div class="id-info-row"><span>LOC:</span><span class="val">Bengaluru, IN</span></div>
+          <div class="id-info-row"><span>STATUS:</span><span class="val">Data Analytics Intern</span></div>
+          <div class="id-info-row"><span>CLEARANCE:</span><span class="val">LEVEL 5</span></div>
+
+          <div class="diagnostics">
+            <div class="diag-title">System Diagnostics</div>
+            <div class="diag-row"><span>Python</span><div class="diag-bar"><div class="diag-bar-fill fill-green" id="barPython"></div></div><span class="diag-val" id="valPython">95%</span></div>
+            <div class="diag-row"><span>SQL</span><div class="diag-bar"><div class="diag-bar-fill fill-cyan" id="barSQL"></div></div><span class="diag-val" id="valSQL">90%</span></div>
+            <div class="diag-row"><span>ML</span><div class="diag-bar"><div class="diag-bar-fill fill-yellow" id="barML"></div></div><span class="diag-val" id="valML">88%</span></div>
+            <div class="diag-row"><span>Power BI</span><div class="diag-bar"><div class="diag-bar-fill fill-purple" id="barBI"></div></div><span class="diag-val" id="valBI">92%</span></div>
+            <div class="diag-row"><span>AWS</span><div class="diag-bar"><div class="diag-bar-fill fill-cyan" id="barAWS"></div></div><span class="diag-val" id="valAWS">75%</span></div>
+          </div>
+
+          <div class="live-clock">
+            <div class="time" id="liveTime">00:00:00</div>
+            <div class="date" id="liveDate">LOADING...</div>
+          </div>
+
+          <!-- NEW: WEBCAM FACE SCAN -->
+          <div class="scan-panel">
+            <div class="scan-header" id="scanHeader">
+              <span>📷 identity_scan.exe</span>
+              <span class="scan-toggle" id="scanToggle">▼ open</span>
+            </div>
+            <div class="scan-body" id="scanBody">
+              <div class="scan-video-wrap">
+                <video id="scanVideo" autoplay muted playsinline></video>
+                <div class="scan-overlay">
+                  <div class="scan-line"></div>
+                  <div class="scan-corners"></div>
+                </div>
+              </div>
+              <button class="scan-btn" id="scanBtn">🔍 SCAN IDENTITY</button>
+              <div class="scan-status" id="scanStatus">Camera offline. Click SCAN to begin.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 1rem; border: 1px solid rgba(176,38,255,0.25); background: rgba(176,38,255,0.03); border-radius: 4px; padding: 0.8rem;">
+          <div style="font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--purple); margin-bottom: 0.5rem;">⚡ Quick Stats</div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: rgba(0,255,65,0.6); margin-bottom: 0.3rem;"><span>Response Time</span><span style="color: var(--green);">&lt;24h</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: rgba(0,255,65,0.6); margin-bottom: 0.3rem;"><span>Languages</span><span style="color: var(--green);">EN, HI, UR</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: rgba(0,255,65,0.6); margin-bottom: 0.3rem;"><span>Open to Work</span><span style="color: var(--green);">YES</span></div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.65rem; color: rgba(0,255,65,0.6);"><span>Time Zone</span><span style="color: var(--green);">IST (UTC+5:30)</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ===== MATRIX RAIN =====
+      const canvas = document.getElementById('matrix');
+      const ctx = canvas.getContext('2d');
+      let width, height, columns, drops = [];
+      const fontSize = 14;
+      const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*(){}[]<>/\\|=+-_~`';
+
+      function resizeCanvas() {
+        width = window.innerWidth; height = window.innerHeight;
+        canvas.width = width; canvas.height = height;
+        columns = Math.floor(width / fontSize);
+        drops = [];
+        for (let i = 0; i < columns; i++) drops[i] = Math.random() * -100;
+      }
+
+      function drawMatrix() {
+        ctx.fillStyle = 'rgba(10, 10, 10, 0.06)';
+        ctx.fillRect(0, 0, width, height);
+        ctx.font = fontSize + 'px monospace';
+        for (let i = 0; i < drops.length; i++) {
+          const char = chars[Math.floor(Math.random() * chars.length)];
+          const x = i * fontSize;
+          const y = drops[i] * fontSize;
+          if (drops[i] * fontSize < height && drops[i] > 0) {
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 8; ctx.shadowColor = '#00ff41';
+            ctx.fillText(char, x, y);
+            ctx.shadowBlur = 0;
+          }
+          ctx.fillStyle = 'rgba(0, 255, 65, 0.55)';
+          ctx.fillText(char, x, y - fontSize);
+          if (y > height && Math.random() > 0.975) drops[i] = 0;
+          drops[i]++;
+        }
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+      setInterval(drawMatrix, 50);
+
+      // ===== CURSOR TRAIL =====
+      const trail = document.getElementById('cursorTrail');
+      let trailX = 0, trailY = 0, mouseX = 0, mouseY = 0;
+      document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+      function animateTrail() {
+        trailX += (mouseX - trailX) * 0.15;
+        trailY += (mouseY - trailY) * 0.15;
+        trail.style.transform = `translate(${trailX - 3}px, ${trailY - 3}px)`;
+        requestAnimationFrame(animateTrail);
+      }
+      animateTrail();
+
+      // ===== CLICK PARTICLE EXPLOSION =====
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('a, button, input, .cmd-terminal, .sound-toggle, .game-panel, .scan-panel, .chatbot-panel')) return;
+        for (let i = 0; i < 12; i++) {
+          const p = document.createElement('div');
+          p.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;width:4px;height:4px;background:${['#00f0ff','#00ff41','#b026ff','#ffe600'][Math.floor(Math.random()*4)]};border-radius:50%;pointer-events:none;z-index:99999;box-shadow:0 0 8px currentColor;`;
+          document.body.appendChild(p);
+          const angle = (Math.PI * 2 * i) / 12 + Math.random() * 0.5;
+          const speed = 2 + Math.random() * 4;
+          const vx = Math.cos(angle) * speed;
+          const vy = Math.sin(angle) * speed;
+          let x = e.clientX, y = e.clientY, opacity = 1, life = 0;
+          (function animate() {
+            life++;
+            x += vx; y += vy + 0.15 * life;
+            opacity -= 0.025;
+            p.style.left = x + 'px'; p.style.top = y + 'px';
+            p.style.opacity = opacity;
+            if (opacity > 0) requestAnimationFrame(animate); else p.remove();
+          })();
+        }
+      });
+
+      // ===== 3D TILT =====
+      document.querySelectorAll('.tilt-card').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const centerX = rect.width / 2, centerY = rect.height / 2;
+          const rotateX = ((y - centerY) / centerY) * -8;
+          const rotateY = ((x - centerX) / centerX) * 8;
+          card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = 'perspective(800px) rotateX(0) rotateY(0) scale(1)';
+        });
+      });
+
+      // ===== GLITCH =====
+      const glitchTitle = document.querySelector('.glitch');
+      if (glitchTitle) {
+        setInterval(() => {
+          glitchTitle.style.textShadow = '0 0 20px rgba(0,255,65,0.9), 2px 0 0 rgba(255,0,60,0.5), -2px 0 0 rgba(0,240,255,0.5)';
+          setTimeout(() => {
+            glitchTitle.style.textShadow = '0 0 12px rgba(0, 255, 65, 0.7)';
+          }, 80);
+        }, 4000);
+      }
+
+      // ===== SKILL FLICKER =====
+      document.querySelectorAll('.skill-tag').forEach((skill, i) => {
+        setInterval(() => {
+          if (Math.random() > 0.93) {
+            skill.style.color = '#ffffff';
+            skill.style.borderColor = '#00ff41';
+            setTimeout(() => { skill.style.color = ''; skill.style.borderColor = ''; }, 150);
+          }
+        }, 2000 + i * 300);
+      });
+
+      // ===== BARCODE =====
+      const barcodeEl = document.getElementById('barcode');
+      if (barcodeEl) {
+        for (let i = 0; i < 40; i++) {
+          const span = document.createElement('span');
+          span.style.height = (Math.random() * 16 + 8) + 'px';
+          span.style.width = (Math.random() > 0.5 ? 2 : 1) + 'px';
+          span.style.animationDelay = (Math.random() * 2) + 's';
+          barcodeEl.appendChild(span);
+        }
+      }
+
+      // ===== DIAGNOSTICS =====
+      const diagData = [
+        { bar: 'barPython', val: 'valPython', target: 95 },
+        { bar: 'barSQL', val: 'valSQL', target: 90 },
+        { bar: 'barML', val: 'valML', target: 88 },
+        { bar: 'barBI', val: 'valBI', target: 92 },
+        { bar: 'barAWS', val: 'valAWS', target: 75 }
+      ];
+      diagData.forEach(d => {
+        const barEl = document.getElementById(d.bar);
+        if (barEl) barEl.style.width = '0%';
+      });
+      setTimeout(() => {
+        diagData.forEach(d => {
+          const barEl = document.getElementById(d.bar);
+          const valEl = document.getElementById(d.val);
+          if (barEl) barEl.style.width = d.target + '%';
+          if (valEl) {
+            let count = 0;
+            const interval = setInterval(() => {
+              count += 2;
+              if (count >= d.target) { count = d.target; clearInterval(interval); }
+              valEl.textContent = count + '%';
+            }, 20);
+          }
+        });
+      }, 1500);
+
+      // ===== LIVE CLOCK =====
+      function updateClock() {
+        const now = new Date();
+        const timeEl = document.getElementById('liveTime');
+        const dateEl = document.getElementById('liveDate');
+        if (timeEl) timeEl.textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+        if (dateEl) {
+          const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+          const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+          dateEl.textContent = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+        }
+      }
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      // ===== FLOATING PARTICLES =====
+      const fpContainer = document.getElementById('floatingParticles');
+      if (fpContainer) {
+        for (let i = 0; i < 25; i++) {
+          const p = document.createElement('div');
+          p.className = 'fp';
+          p.style.left = Math.random() * 100 + '%';
+          p.style.bottom = '-10px';
+          p.style.animationDuration = (Math.random() * 8 + 6) + 's';
+          p.style.animationDelay = (Math.random() * 10) + 's';
+          p.style.width = (Math.random() * 2 + 1) + 'px';
+          p.style.height = p.style.width;
+          const colors = ['#00f0ff', '#00ff41', '#b026ff', '#ffe600'];
+          p.style.background = colors[Math.floor(Math.random() * colors.length)];
+          p.style.boxShadow = '0 0 6px ' + p.style.background;
+          fpContainer.appendChild(p);
+        }
+      }
+
+      // ===== CONFETTI =====
+      const confettiCanvas = document.getElementById('confettiCanvas');
+      const cctx = confettiCanvas.getContext('2d');
+      let confettiParticles = [];
+      let confettiRunning = false;
+
+      function resizeConfetti() {
+        confettiCanvas.width = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resizeConfetti);
+      resizeConfetti();
+
+      function fireConfetti() {
+        const colors = ['#00ff41', '#00f0ff', '#b026ff', '#ffe600', '#ff003c', '#ff2d95', '#ffffff'];
+        for (let i = 0; i < 150; i++) {
+          confettiParticles.push({
+            x: window.innerWidth / 2 + (Math.random() - 0.5) * 200,
+            y: window.innerHeight / 2,
+            vx: (Math.random() - 0.5) * 18,
+            vy: (Math.random() - 0.7) * 18 - 4,
+            size: Math.random() * 6 + 3,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * 360,
+            rotSpeed: (Math.random() - 0.5) * 15,
+            life: 1,
+            gravity: 0.35 + Math.random() * 0.2
+          });
+        }
+        if (!confettiRunning) { confettiRunning = true; animateConfetti(); }
+      }
+
+      function animateConfetti() {
+        cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        confettiParticles = confettiParticles.filter(p => p.life > 0 && p.y < window.innerHeight + 50);
+        confettiParticles.forEach(p => {
+          p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.vx *= 0.99;
+          p.rotation += p.rotSpeed; p.life -= 0.008;
+          cctx.save();
+          cctx.translate(p.x, p.y);
+          cctx.rotate(p.rotation * Math.PI / 180);
+          cctx.globalAlpha = Math.max(0, p.life);
+          cctx.fillStyle = p.color;
+          cctx.shadowBlur = 8; cctx.shadowColor = p.color;
+          cctx.fillRect(-p.size/2, -p.size/2, p.size, p.size * 0.6);
+          cctx.restore();
+        });
+        if (confettiParticles.length > 0) requestAnimationFrame(animateConfetti);
+        else { confettiRunning = false; cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height); }
+      }
+
+      // ===== HIRE TOAST =====
+      const hireToast = document.getElementById('hireToast');
+      function showHireToast() {
+        hireToast.classList.add('show');
+        fireConfetti();
+        setTimeout(() => fireConfetti(), 400);
+        setTimeout(() => hireToast.classList.remove('show'), 4500);
+      }
+
+      // ===== INTERACTIVE COMMAND TERMINAL =====
+      const cmdInput = document.getElementById('cmdInput');
+      const cmdOutput = document.getElementById('cmdOutput');
+
+      const commands = {
+        help: () => 'Available commands:\n  whoami    - about me\n  skills    - list skills\n  projects  - list projects\n  contact   - contact info\n  stats     - live metrics\n  hire      - 🎉 special surprise\n  clear     - clear terminal\n  sudo      - try it ;)',
+        whoami: () => 'Farha Kousar — Data Analyst & AI/ML Engineer\nB.E. AIML (2025) | Data Analytics Intern @ Wadhwani Foundation\nPassionate about transforming data into actionable insights.',
+        skills: () => 'Python (95%) | SQL (90%) | Power BI (92%)\nMachine Learning (88%) | AWS (75%) | Flask (85%)\nLooker Studio (88%) | Tableau (85%) | Java (80%)',
+        projects: () => '1. Smart Discount Analyzer — 50K+ reviews, 52.2% promo boost\n2. HIFI Delivery System — 35% faster response\n3. HR Analytics — 91% attrition prediction accuracy\n4. Automated Checkout — RFID + Arduino/RPi\n5. Zepto Sales Intel — 3.4x revenue boost\n6. FoodieBot — IBM Watson chatbot',
+        contact: () => 'email: farhakousar576@gmail.com\nphone: 6362513520\nlinkedin: /in/farhakousar\ngithub: /FarhaKousar1601\nwebsite: farha-kousar.vercel.app',
+        stats: () => `LinkedIn: 14K followers\nGitHub: 220 followers\nStudents mentored: 50+\nProjects delivered: 25+\nUptime: 99.97%\nLocal time: ${new Date().toLocaleTimeString()}`,
+        hire: () => {
+          showHireToast();
+          return '🎉 CONFETTI CANNON ACTIVATED! 🎉\nThanks for the consideration! Let\'s build something amazing together.\nContact: farhakousar576@gmail.com';
+        },
+        sudo: () => 'Nice try 😉 — but you don\'t need root access to hire me.\nJust type \'hire\' or email farhakousar576@gmail.com',
+        clear: () => { cmdOutput.innerHTML = '<span class="cmd-result">Terminal cleared. Type \'help\' for commands.</span>'; return null; }
+      };
+
+      function processCommand(cmd) {
+        const trimmed = cmd.trim().toLowerCase();
+        if (!trimmed) return;
+        const echo = document.createElement('div');
+        echo.innerHTML = '<span class="cmd-echo">$ ' + escapeHtml(trimmed) + '</span>';
+        cmdOutput.appendChild(echo);
+        if (commands[trimmed]) {
+          const result = commands[trimmed]();
+          if (result !== null) {
+            const resEl = document.createElement('div');
+            resEl.className = 'cmd-result';
+            resEl.textContent = result;
+            cmdOutput.appendChild(resEl);
+          }
+        } else {
+          const errEl = document.createElement('div');
+          errEl.className = 'cmd-error';
+          errEl.textContent = 'command not found: ' + trimmed + ' (try \'help\')';
+          cmdOutput.appendChild(errEl);
+        }
+        cmdOutput.scrollTop = cmdOutput.scrollHeight;
+        if (cmdOutput.children.length > 50) cmdOutput.removeChild(cmdOutput.firstChild);
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      if (cmdInput) {
+        cmdInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            processCommand(cmdInput.value);
+            cmdInput.value = '';
+          }
+        });
+      }
+
+      // ===== VOICE INPUT =====
+      const voiceBtn = document.getElementById('voiceBtn');
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (voiceBtn && SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        voiceBtn.addEventListener('click', () => {
+          try {
+            recognition.start();
+            voiceBtn.classList.add('listening');
+            voiceBtn.textContent = '🔴';
+          } catch (e) {}
+        });
+
+        recognition.onresult = (e) => {
+          const transcript = e.results[0][0].transcript.trim();
+          if (cmdInput) cmdInput.value = transcript;
+          processCommand(transcript);
+          if (cmdInput) cmdInput.value = '';
+        };
+
+        recognition.onend = () => {
+          voiceBtn.classList.remove('listening');
+          voiceBtn.textContent = '🎤';
+        };
+
+        recognition.onerror = () => {
+          voiceBtn.classList.remove('listening');
+          voiceBtn.textContent = '🎤';
+        };
+      } else if (voiceBtn) {
+        voiceBtn.addEventListener('click', () => {
+          voiceBtn.textContent = '❌';
+          voiceBtn.title = 'Voice not supported';
+          setTimeout(() => { voiceBtn.textContent = '🎤'; voiceBtn.title = 'Voice command'; }, 2000);
+        });
+      }
+
+      // ===== SOUND TOGGLE =====
+      let audioCtx = null, oscillator = null, gainNode = null, soundOn = false;
+      const soundToggle = document.getElementById('soundToggle');
+
+      if (soundToggle) {
+        soundToggle.addEventListener('click', () => {
+          if (!soundOn) {
+            try {
+              audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+              oscillator = audioCtx.createOscillator();
+              gainNode = audioCtx.createGain();
+              oscillator.type = 'sine';
+              oscillator.frequency.setValueAtTime(55, audioCtx.currentTime);
+              gainNode.gain.setValueAtTime(0.0, audioCtx.currentTime);
+              gainNode.gain.linearRampToValueAtTime(0.03, audioCtx.currentTime + 0.5);
+
+              const lfo = audioCtx.createOscillator();
+              const lfoGain = audioCtx.createGain();
+              lfo.frequency.setValueAtTime(0.1, audioCtx.currentTime);
+              lfoGain.gain.setValueAtTime(2, audioCtx.currentTime);
+              lfo.connect(lfoGain);
+              lfoGain.connect(oscillator.frequency);
+              lfo.start();
+
+              oscillator.connect(gainNode);
+              gainNode.connect(audioCtx.destination);
+              oscillator.start();
+
+              soundOn = true;
+              soundToggle.textContent = '🔊';
+              soundToggle.classList.remove('off');
+            } catch (e) {}
+          } else {
+            if (oscillator) {
+              try {
+                gainNode.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + 0.3);
+                setTimeout(() => {
+                  oscillator.stop();
+                  oscillator.disconnect();
+                  audioCtx.close();
+                }, 350);
+              } catch (e) {}
+            }
+            soundOn = false;
+            soundToggle.textContent = '🔇';
+            soundToggle.classList.add('off');
+          }
+        });
+      }
+
+      // ===== TYPEWRITER BOOT (NEW) =====
+      const twBoot = document.getElementById('typewriterBoot');
+      const bootLines = [
+        '[boot] initializing secure shell...',
+        '[boot] loading neural interface...',
+        '[boot] decrypting portfolio data...',
+        '[boot] welcome, visitor.'
+      ];
+      let bootIdx = 0, bootCharIdx = 0, bootText = '';
+
+      function typeBoot() {
+        if (bootIdx >= bootLines.length) {
+          twBoot.innerHTML = bootText + '<span class="tw-cursor"></span>';
+          return;
+        }
+        const line = bootLines[bootIdx];
+        if (bootCharIdx < line.length) {
+          bootText += line[bootCharIdx];
+          bootCharIdx++;
+          twBoot.innerHTML = bootText + '<span class="tw-cursor"></span>';
+          setTimeout(typeBoot, 18 + Math.random() * 30);
+        } else {
+          bootText += '\n';
+          bootIdx++;
+          bootCharIdx = 0;
+          setTimeout(typeBoot, 300);
+        }
+      }
+      setTimeout(typeBoot, 800);
+
+      // ===== AI CHATBOT (NEW) =====
+      const chatToggle = document.getElementById('chatToggle');
+      const chatWindow = document.getElementById('chatWindow');
+      const chatClose = document.getElementById('chatClose');
+      const chatMessages = document.getElementById('chatMessages');
+      const chatInput = document.getElementById('chatInput');
+      const chatSend = document.getElementById('chatSend');
+      const chatBadge = document.getElementById('chatBadge');
+      const chatSuggestions = document.getElementById('chatSuggestions');
+
+      const aiKnowledge = {
+        skills: "Farha's core skills:\n• Python (95%), SQL (90%), Java (80%)\n• Power BI (92%), Tableau (88%), Looker Studio (85%)\n• Machine Learning (88%), NLP (80%), Deep Learning (70%)\n• AWS, Google Cloud, Docker, Git/GitHub",
+        projects: "Top projects:\n1. Smart Discount Analyzer — 50K+ reviews, 52.2% promo boost\n2. HIFI Delivery System — 35% faster response\n3. HR Analytics — 91% attrition accuracy\n4. Automated Checkout — RFID + Arduino/RPi\n5. Zepto Sales Intel — 3.4x revenue boost\n6. FoodieBot — IBM Watson chatbot",
+        experience: "Experience:\n• Data Analytics Intern @ Wadhwani Foundation (Aug 2025–Present) — reduced reporting by 30%\n• Python Developer Intern @ Infosys SpringBoard (Mar–Apr 2025) — improved efficiency by 70%",
+        contact: "Contact Farha:\n📧 farhakousar576@gmail.com\n📱 6362513520\n💼 linkedin.com/in/farhakousar\n🐙 github.com/FarhaKousar1601\n🌐 farha-kousar.vercel.app",
+        hire: "Farha is open to work! 🎉 She's available for Data Analyst, AI/ML Engineer, and Python Developer roles. Email farhakousar576@gmail.com or type 'hire' in the main terminal for a surprise!",
+        education: "B.E. in Artificial Intelligence & Machine Learning from KNS Institute of Technology (2021–2025). CGPA: 8.06/10 — First Class with Distinction.",
+        certifications: "Certifications:\n• Oracle Certified Foundations Associate\n• AI/ML for Geodata Analysis (ISRO)\n• Python for Data Science (NPTEL)\n• GitHub Foundations\n• Prompt Engineering (Dubai Future Foundation)",
+        default: "I can tell you about Farha's skills, projects, experience, education, certifications, or contact info. Try asking 'What are her skills?' or 'Show me her projects'!"
+      };
+
+      function getAIResponse(msg) {
+        const m = msg.toLowerCase();
+        if (m.includes('skill') || m.includes('tech') || m.includes('know')) return aiKnowledge.skills;
+        if (m.includes('project') || m.includes('work') || m.includes('built')) return aiKnowledge.projects;
+        if (m.includes('experience') || m.includes('job') || m.includes('intern')) return aiKnowledge.experience;
+        if (m.includes('contact') || m.includes('email') || m.includes('reach') || m.includes('phone')) return aiKnowledge.contact;
+        if (m.includes('hire') || m.includes('available') || m.includes('open to work') || m.includes('job')) return aiKnowledge.hire;
+        if (m.includes('education') || m.includes('college') || m.includes('degree') || m.includes('study')) return aiKnowledge.education;
+        if (m.includes('certif')) return aiKnowledge.certifications;
+        if (m.includes('hi') || m.includes('hello') || m.includes('hey')) return "Hey! 👋 I'm FARHA-AI. Ask me about Farha's skills, projects, experience, or how to contact her!";
+        if (m.includes('thanks') || m.includes('thank')) return "You're welcome! 😊 Feel free to ask anything else, or type 'hire' in the main terminal for a surprise!";
+        return aiKnowledge.default;
+      }
+
+      function addChatMessage(text, sender) {
+        const msg = document.createElement('div');
+        msg.className = 'chat-msg ' + sender;
+        msg.textContent = text;
+        chatMessages.appendChild(msg);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function addTypingIndicator() {
+        const typing = document.createElement('div');
+        typing.className = 'chat-msg bot typing';
+        typing.textContent = 'FARHA-AI is thinking';
+        typing.id = 'typingIndicator';
+        chatMessages.appendChild(typing);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function removeTypingIndicator() {
+        const t = document.getElementById('typingIndicator');
+        if (t) t.remove();
+      }
+
+      function sendChat() {
+        const msg = chatInput.value.trim();
+        if (!msg) return;
+        addChatMessage(msg, 'user');
+        chatInput.value = '';
+        addTypingIndicator();
+        setTimeout(() => {
+          removeTypingIndicator();
+          const response = getAIResponse(msg);
+          addChatMessage(response, 'bot');
+        }, 600 + Math.random() * 600);
+      }
+
+      chatToggle.addEventListener('click', () => {
+        chatWindow.classList.toggle('open');
+        if (chatWindow.classList.contains('open')) {
+          chatBadge.style.display = 'none';
+          chatInput.focus();
+        }
+      });
+
+      chatClose.addEventListener('click', () => {
+        chatWindow.classList.remove('open');
+      });
+
+      chatSend.addEventListener('click', sendChat);
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendChat();
+      });
+
+      chatSuggestions.addEventListener('click', (e) => {
+        if (e.target.classList.contains('chat-suggestion')) {
+          const q = e.target.getAttribute('data-q');
+          chatInput.value = q;
+          sendChat();
+        }
+      });
+
+      // ===== RETRO MINI-GAME (NEW) =====
+      const gameHeader = document.getElementById('gameHeader');
+      const gameToggle = document.getElementById('gameToggle');
+      const gameBody = document.getElementById('gameBody');
+      const gameCanvas = document.getElementById('gameCanvas');
+      const gctx = gameCanvas.getContext('2d');
+      const gameScoreEl = document.getElementById('gameScore');
+      const gameTimeEl = document.getElementById('gameTime');
+      const gameLevelEl = document.getElementById('gameLevel');
+      const gameStatus = document.getElementById('gameStatus');
+      const gameStartBtn = document.getElementById('gameStartBtn');
+      const gameResetBtn = document.getElementById('gameResetBtn');
+
+      let gameState = {
+        running: false,
+        score: 0,
+        time: 30,
+        level: 1,
+        targets: [],
+        timer: null,
+        spawnTimer: null,
+        gameLoop: null
+      };
+
+      gameHeader.addEventListener('click', () => {
+        gameBody.classList.toggle('open');
+        gameToggle.textContent = gameBody.classList.contains('open') ? '▲ close' : '▼ open';
+        if (gameBody.classList.contains('open')) {
+          resizeGameCanvas();
+        }
+      });
+
+      function resizeGameCanvas() {
+        const rect = gameCanvas.getBoundingClientRect();
+        gameCanvas.width = rect.width;
+        gameCanvas.height = rect.height;
+      }
+
+      function spawnTarget() {
+        if (!gameState.running) return;
+        const w = gameCanvas.width, h = gameCanvas.height;
+        const size = Math.max(20, 40 - gameState.level * 3);
+        const target = {
+          x: Math.random() * (w - size - 20) + 10,
+          y: Math.random() * (h - size - 20) + 10,
+          size: size,
+          life: 1,
+          born: Date.now(),
+          ttl: 2000 - gameState.level * 100
+        };
+        gameState.targets.push(target);
+      }
+
+      function drawGame() {
+        gctx.fillStyle = 'rgba(0,0,0,0.6)';
+        gctx.fillRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+        // Grid
+        gctx.strokeStyle = 'rgba(255,0,60,0.1)';
+        gctx.lineWidth = 1;
+        for (let x = 0; x < gameCanvas.width; x += 30) {
+          gctx.beginPath(); gctx.moveTo(x, 0); gctx.lineTo(x, gameCanvas.height); gctx.stroke();
+        }
+        for (let y = 0; y < gameCanvas.height; y += 30) {
+          gctx.beginPath(); gctx.moveTo(0, y); gctx.lineTo(gameCanvas.width, y); gctx.stroke();
+        }
+
+        // Targets
+        const now = Date.now();
+        gameState.targets = gameState.targets.filter(t => {
+          const elapsed = now - t.born;
+          const progress = elapsed / t.ttl;
+          if (progress >= 1) return false;
+          t.life = 1 - progress;
+          const pulse = 1 + Math.sin(now * 0.01) * 0.1;
+          const size = t.size * pulse;
+
+          gctx.save();
+          gctx.translate(t.x + t.size / 2, t.y + t.size / 2);
+          gctx.rotate(now * 0.002);
+
+          gctx.shadowBlur = 20;
+          gctx.shadowColor = progress > 0.7 ? '#ff003c' : '#00f0ff';
+          gctx.strokeStyle = progress > 0.7 ? '#ff003c' : '#00f0ff';
+          gctx.lineWidth = 2;
+          gctx.globalAlpha = t.life;
+
+          gctx.strokeRect(-size/2, -size/2, size, size);
+          gctx.beginPath();
+          gctx.arc(0, 0, size / 2.5, 0, Math.PI * 2);
+          gctx.stroke();
+          gctx.fillStyle = progress > 0.7 ? '#ff003c' : '#00f0ff';
+          gctx.globalAlpha = t.life * 0.3;
+          gctx.fill();
+
+          gctx.restore();
+          return true;
+        });
+
+        // HUD
+        gctx.fillStyle = 'rgba(255,230,0,0.8)';
+        gctx.font = '10px monospace';
+        gctx.fillText('HACK THE FIREWALL // TARGETS: ' + gameState.targets.length, 8, 14);
+
+        if (!gameState.running && gameState.time === 30) {
+          gctx.fillStyle = 'rgba(255,0,60,0.8)';
+          gctx.font = 'bold 14px monospace';
+          gctx.textAlign = 'center';
+          gctx.fillText('PRESS START', gameCanvas.width / 2, gameCanvas.height / 2);
+          gctx.textAlign = 'left';
+        }
+
+        if (!gameState.running && gameState.time === 0) {
+          gctx.fillStyle = 'rgba(0,255,65,0.9)';
+          gctx.font = 'bold 16px monospace';
+          gctx.textAlign = 'center';
+          gctx.fillText('HACK COMPLETE! SCORE: ' + gameState.score, gameCanvas.width / 2, gameCanvas.height / 2);
+          gctx.textAlign = 'left';
+        }
+
+        if (gameState.running) {
+          requestAnimationFrame(drawGame);
+        }
+      }
+
+      function startGame() {
+        if (gameState.running) return;
+        gameState = {
+          running: true,
+          score: 0,
+          time: 30,
+          level: 1,
+          targets: [],
+          timer: null,
+          spawnTimer: null,
+          gameLoop: null
+        };
+        gameScoreEl.textContent = '0';
+        gameTimeEl.textContent = '30';
+        gameLevelEl.textContent = '1';
+        gameStatus.textContent = '🔓 Hacking firewall... click the targets!';
+        gameStatus.style.color = 'var(--cyan)';
+
+        gameState.timer = setInterval(() => {
+          gameState.time--;
+          gameTimeEl.textContent = gameState.time;
+          if (gameState.time <= 0) endGame();
+        }, 1000);
+
+        gameState.spawnTimer = setInterval(spawnTarget, 700);
+
+        drawGame();
+      }
+
+      function endGame() {
+        gameState.running = false;
+        clearInterval(gameState.timer);
+        clearInterval(gameState.spawnTimer);
+        gameStatus.textContent = `✅ Firewall hacked! Final score: ${gameState.score}`;
+        gameStatus.style.color = 'var(--green)';
+        if (gameState.score >= 15) {
+          fireConfetti();
+          gameStatus.textContent += ' 🎉 CONFetti!';
+        }
+        drawGame();
+      }
+
+      function resetGame() {
+        gameState.running = false;
+        clearInterval(gameState.timer);
+        clearInterval(gameState.spawnTimer);
+        gameState.score = 0;
+        gameState.time = 30;
+        gameState.level = 1;
+        gameState.targets = [];
+        gameScoreEl.textContent = '0';
+        gameTimeEl.textContent = '30';
+        gameLevelEl.textContent = '1';
+        gameStatus.textContent = 'Press START to begin hacking the firewall.';
+        gameStatus.style.color = 'var(--yellow)';
+        drawGame();
+      }
+
+      gameCanvas.addEventListener('click', (e) => {
+        if (!gameState.running) return;
+        const rect = gameCanvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        for (let i = gameState.targets.length - 1; i >= 0; i--) {
+          const t = gameState.targets[i];
+          if (mx >= t.x && mx <= t.x + t.size && my >= t.y && my <= t.y + t.size) {
+            gameState.targets.splice(i, 1);
+            gameState.score++;
+            gameScoreEl.textContent = gameState.score;
+            gameStatus.textContent = `🎯 Target hacked! Score: ${gameState.score}`;
+            gameStatus.style.color = 'var(--green)';
+
+            // Level up every 5 points
+            if (gameState.score % 5 === 0 && gameState.score > 0) {
+              gameState.level++;
+              gameLevelEl.textContent = gameState.level;
+              gameStatus.textContent += ` ⬆️ Level ${gameState.level}!`;
+            }
+
+            // Click particle
+            for (let j = 0; j < 6; j++) {
+              const p = document.createElement('div');
+              p.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;width:3px;height:3px;background:#00f0ff;border-radius:50%;pointer-events:none;z-index:99999;box-shadow:0 0 6px #00f0ff;`;
+              document.body.appendChild(p);
+              const angle = (Math.PI * 2 * j) / 6;
+              const speed = 2 + Math.random() * 3;
+              let x = e.clientX, y = e.clientY, op = 1;
+              (function a() {
+                x += Math.cos(angle) * speed;
+                y += Math.sin(angle) * speed;
+                op -= 0.04;
+                p.style.left = x + 'px';
+                p.style.top = y + 'px';
+                p.style.opacity = op;
+                if (op > 0) requestAnimationFrame(a); else p.remove();
+              })();
+            }
+            break;
+          }
+        }
+      });
+
+      gameStartBtn.addEventListener('click', startGame);
+      gameResetBtn.addEventListener('click', resetGame);
+
+      // ===== WEBCAM FACE SCAN (NEW) =====
+      const scanHeader = document.getElementById('scanHeader');
+      const scanToggle = document.getElementById('scanToggle');
+      const scanBody = document.getElementById('scanBody');
+      const scanVideo = document.getElementById('scanVideo');
+      const scanBtn = document.getElementById('scanBtn');
+      const scanStatus = document.getElementById('scanStatus');
+
+      let scanStream = null;
+      let scanRunning = false;
+
+      scanHeader.addEventListener('click', async () => {
+        scanBody.classList.toggle('open');
+        scanToggle.textContent = scanBody.classList.contains('open') ? '▲ close' : '▼ open';
+
+        if (scanBody.classList.contains('open')) {
+          // Try to start camera
+          try {
+            scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            scanVideo.srcObject = scanStream;
+            scanStatus.textContent = 'Camera active. Click SCAN IDENTITY to verify.';
+          } catch (e) {
+            scanStatus.textContent = '⚠️ Camera access denied or unavailable.';
+            scanStatus.style.color = 'var(--red)';
+          }
+        } else {
+          if (scanStream) {
+            scanStream.getTracks().forEach(t => t.stop());
+            scanStream = null;
+          }
+          scanStatus.textContent = 'Camera offline.';
+          scanStatus.style.color = 'var(--yellow)';
+        }
+      });
+
+      scanBtn.addEventListener('click', async () => {
+        if (!scanStream) {
+          try {
+            scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            scanVideo.srcObject = scanStream;
+          } catch (e) {
+            scanStatus.textContent = '⚠️ Camera unavailable. Cannot scan.';
+            scanStatus.style.color = 'var(--red)';
+            return;
+          }
+        }
+
+        scanRunning = true;
+        scanBtn.disabled = true;
+        scanBtn.textContent = '⏳ SCANNING...';
+        scanStatus.textContent = '🔍 Scanning biometrics...';
+        scanStatus.style.color = 'var(--cyan)';
+        scanStatus.classList.remove('scan-verified');
+
+        setTimeout(() => {
+          scanStatus.textContent = '🔍 Analyzing facial features...';
+        }, 800);
+
+        setTimeout(() => {
+          scanStatus.textContent = '🔍 Cross-referencing database...';
+        }, 1600);
+
+        setTimeout(() => {
+          scanStatus.textContent = '✅ IDENTITY VERIFIED: FARHA KOUSAR';
+          scanStatus.classList.add('scan-verified');
+          scanBtn.textContent = '✓ VERIFIED';
+          scanBtn.disabled = false;
+          scanRunning = false;
+          fireConfetti();
+
+          setTimeout(() => {
+            scanBtn.textContent = '🔍 SCAN AGAIN';
+          }, 3000);
+        }, 2600);
+      });
+
+      // ===== VISITOR COUNTER (NEW) =====
+      const visitorNum = document.getElementById('visitorNum');
+      let visitorCount = 0;
+      // Simulate visitor count with localStorage
+      let stored = null;
+      try {
+        stored = localStorage.getItem('fk_visitors');
+      } catch (e) {}
+      if (stored) {
+        visitorCount = parseInt(stored, 10) + 1;
+      } else {
+        visitorCount = Math.floor(Math.random() * 500) + 1250;
+      }
+      try {
+        localStorage.setItem('fk_visitors', visitorCount);
+      } catch (e) {}
+
+      function animateVisitorCount() {
+        let start = Math.max(0, visitorCount - 50);
+        let current = start;
+        const interval = setInterval(() => {
+          current += 2;
+          if (current >= visitorCount) {
+            current = visitorCount;
+            clearInterval(interval);
+          }
+          visitorNum.textContent = String(current).padStart(4, '0');
+        }, 30);
+      }
+      setTimeout(animateVisitorCount, 800);
+
+      // ===== SCROLL TO BOTTOM =====
+      window.addEventListener('load', () => {
+        setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 500);
+      });
+
+      // ===== KONAMI CODE =====
+      let konamiCode = [];
+      const konamiSequence = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+      document.addEventListener('keydown', (e) => {
+        konamiCode.push(e.key);
+        if (konamiCode.length > konamiSequence.length) konamiCode.shift();
+        if (konamiCode.join(',') === konamiSequence.join(',')) {
+          document.body.style.transition = 'filter 0.5s';
+          document.body.style.filter = 'invert(1) hue-rotate(180deg)';
+          fireConfetti();
+          setTimeout(() => { document.body.style.filter = ''; }, 800);
+          document.querySelector('.terminal').style.boxShadow = '0 0 60px rgba(0, 255, 65, 0.5), inset 0 0 60px rgba(0, 255, 65, 0.1)';
+          setTimeout(() => {
+            document.querySelector('.terminal').style.boxShadow = '';
+          }, 2000);
+          konamiCode = [];
+        }
+      });
+
+    })();
+  </script>
+</body>
+</html>
